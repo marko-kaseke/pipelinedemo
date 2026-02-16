@@ -31,7 +31,6 @@ jobs:
                 
             - name: Compile project
               run: |
-                #cd pipelinedemo
                 mvn clean compile
  
     # Assumming you have unit tests 
@@ -53,7 +52,6 @@ jobs:
                 
             - name: Running unit tests
               run: |
-                #cd pipelinedemo
                 mvn clean test  
 
     build:
@@ -75,7 +73,6 @@ jobs:
                 
             - name: Build project
               run: |
-                #cd pipelinedemo
                 mvn clean package 
                 
     build-image:
@@ -98,7 +95,6 @@ jobs:
             - name: Extract project version
               id: extract_version
               run: |
-                #cd pipelinedemo
                 echo "VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_OUTPUT
                 
             - name: Login to DockerHub
