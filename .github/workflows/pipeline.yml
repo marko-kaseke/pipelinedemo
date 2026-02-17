@@ -153,7 +153,7 @@ jobs:
     #            EOF
     
     ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
-    ##For Windows
+    ##For Windows.
     deploy:
         runs-on: [self-hosted, Windows]
         name: Deploy backend
@@ -164,23 +164,22 @@ jobs:
 
             - name: Setup Deployment Folder and Deploy
               shell: cmd
+              env:
+                MY_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
               run: |
-                :: 1. Save the environment variable (GitHub secret) to a file using PowerShell (Ensure correct format)
-                powershell -Command "$key = '${{ secrets.SSH_PRIVATE_KEY }}'; $key | Out-File -FilePath deploy_key.pem -Encoding ascii"
+                :: 1. Write SSH key EXACTLY as stored (no formatting changes)
+                powershell -Command "[System.IO.File]::WriteAllText('deploy_key.pem', $env:MY_KEY)"
 
-                :: 2. Convert line endings to LF (UNIX format) to avoid issues with the key
-                powershell -Command "(Get-Content deploy_key.pem) | Set-Content deploy_key.pem -Force -Encoding ascii"
-
-                :: 3. Fix Permissions (Make sure SSH can use the key)
+                :: 2. Fix Permissions (CRITICAL on Windows)
                 icacls deploy_key.pem /inheritance:r
-                icacls deploy_key.pem /grant:r "%USERNAME%":"(R)"
+                icacls deploy_key.pem /grant:r "%USERNAME%":R
 
-                :: 4. Run SSH Commands (Using the settings your VPS needs)
-                ssh -i deploy_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
+                :: 3. Run SSH Commands
+                ssh -i deploy_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "mkdir -p ci-cd"
 
                 scp -i deploy_key.pem -o StrictHostKeyChecking=no -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
 
                 ssh -i deploy_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"
 
-                :: 5. Cleanup - Remove the SSH private key after use
+                :: 4. Cleanup
                 del deploy_key.pem
