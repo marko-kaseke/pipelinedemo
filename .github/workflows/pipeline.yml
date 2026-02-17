@@ -165,14 +165,14 @@ jobs:
             - name: Setup Deployment Folder and Deploy
               shell: cmd
               run: |
-                :: 1. Use PowerShell in a single line to write the key correctly
-                powershell -Command "$key = '${{ secrets.SSH_PRIVATE_KEY }}'; $key | Out-File -FilePath deploy_key.pem -Encoding ascii"
+                :: 1. Save the environment variable to a file using PowerShell
+                powershell -Command "$env:MY_KEY | Out-File -FilePath deploy_key.pem -Encoding ascii"
 
                 :: 2. Fix Permissions
                 icacls deploy_key.pem /inheritance:r
                 icacls deploy_key.pem /grant:r "%USERNAME%":"(R)"
 
-                :: 3. SSH Commands (Using the settings your VPS needs)
+                :: 3. Run SSH Commands
                 ssh -i deploy_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
 
                 scp -i deploy_key.pem -o StrictHostKeyChecking=no -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
