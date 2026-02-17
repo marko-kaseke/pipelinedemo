@@ -167,18 +167,22 @@ jobs:
               env:
                 MY_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
               run: |
-                # Start the ssh-agent (silently if already running)
-                Start-Service ssh-agent -ErrorAction SilentlyContinue
+                # 1. Save the SSH key to a temp file
+                $keyPath = "$env:TEMP\deploy_key"
+                $env:MY_KEY | Out-File -Encoding ascii $keyPath
+                icacls $keyPath /inheritance:r /grant:r "$($env:USERNAME):(R)"  # restrict permissions
 
-                # Add the SSH key from the environment variable
-                $MY_KEY | Out-File -Encoding ascii "$env:TEMP\deploy_key" 
-                ssh-add "$env:TEMP\deploy_key"
+                # 2. Define SSH options including legacy KEX
+                $ssh_opts = "-i $keyPath -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no"
 
-                # SSH commands
-                ssh -o StrictHostKeyChecking=no ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
-                scp -o StrictHostKeyChecking=no docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
-                ssh -o StrictHostKeyChecking=no ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"
+                # 3. Create remote folder
+                ssh $ssh_opts ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
 
-                # Clean up
-                ssh-add -D
-                Remove-Item "$env:TEMP\deploy_key"
+                # 4. Copy docker-compose.yml
+                scp $ssh_opts docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
+
+                # 5. Pull and run Docker
+                ssh $ssh_opts ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"
+
+                # 6. Clean up
+                Remove-Item $keyPath
