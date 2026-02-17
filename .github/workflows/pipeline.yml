@@ -74,15 +74,11 @@ jobs:
                 java-version: 21
                 distribution: 'corretto'
                 
-            #- name: Build project
-            #  run: |
-            #    mvn clean package 
-            
-            - name: Build Docker Image
-                run: |
-                    docker build --file Dockerfile --tag myimage:latest .
-
-                
+            - name: Build project
+              run: |
+                docker build --file Dockerfile --platform linux/amd64 --tag markokaseke:latest .
+              shell: cmd  # Running in CMD shell on Windows
+              
     build-image:
         #runs-on: self-hosted
         #runs-on: ubuntu-latest #github vm (temporary and for testing the pipeline)
