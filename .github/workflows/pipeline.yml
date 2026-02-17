@@ -162,50 +162,29 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
-            - name: Setup Deployment Folder and Deploy
+            - name: Install SSH Key
+              uses: shimataro/ssh-key-action@v2
+              with:
+                key: ${{ secrets.SSH_PRIVATE_KEY }}
+                known_hosts: unnecessary_if_using_ignore
+                if_key_exists: replace
+                
+            - name: Deploy via SSH
               shell: powershell
-              env:
-                MY_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
               run: |
-                # Path to Git SSH
-                $gitSSH = "C:\Program Files\Git\usr\bin\ssh.exe"
-                $gitSCP = "C:\Program Files\Git\usr\bin\scp.exe"
-                
-                # 1. Save the SSH key in a folder the runner can write
-                $deployDir = Join-Path $env:GITHUB_WORKSPACE "deploy_temp"
-                if (-not (Test-Path $deployDir)) { New-Item -ItemType Directory -Force -Path $deployDir }
-                
-                $keyPath = Join-Path $deployDir "deploy_key"
-                $env:MY_KEY | Set-Content -Encoding Ascii $keyPath
-                icacls $keyPath /inheritance:r /grant:r "$($env:USERNAME):(R)"
-
-                # 2. Define SSH options
-                $ssh_args = @(
-                    "-i", $keyPath,
-                    "-c", "aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc",
-                    "-o", "KexAlgorithms=+diffie-hellman-group14-sha1",
-                    "-o", "HostKeyAlgorithms=+ssh-rsa",
-                    "-o", "MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96",
-                    "-o", "StrictHostKeyChecking=no",
-                    "-o", "ConnectTimeout=10"
-                )
-
                 $vps = "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}"
 
-                # 3. Create remote folder
-                & $gitSSH @ssh_args $vps "mkdir -p ci-cd"
+                # Optional: add legacy ciphers if your VPS requires them
+                $sshOpts = "-o StrictHostKeyChecking=no `
+                    -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc `
+                    -o KexAlgorithms=+diffie-hellman-group14-sha1 `
+                    -o HostKeyAlgorithms=+ssh-rsa"
 
-                # 4. Copy docker-compose.yml
-                $remoteDest = $vps + ":ci-cd/docker-compose.yml"
-                & $gitSCP @ssh_args docker-compose.yml $remoteDest
+                # Create folder
+                ssh $sshOpts $vps "mkdir -p ci-cd"
 
-                # 5. Pull and run Docker
-                & $gitSSH @ssh_args $vps "cd ci-cd && docker compose pull && docker compose up -d"
+                # Copy docker-compose.yml
+                scp $sshOpts docker-compose.yml "${vps}:ci-cd/docker-compose.yml"
 
-                # 6. Clean up
-                if (Test-Path $keyPath) { Remove-Item $keyPath -Force }
-
-                # Optional: remove deploy_temp folder if empty
-                if (Test-Path $deployDir -and (Get-ChildItem $deployDir | Measure-Object).Count -eq 0) {
-                    Remove-Item $deployDir -Force
-                }
+                # Pull and run Docker
+                ssh $sshOpts $vps "cd ci-cd && docker compose pull && docker compose up -d"    
