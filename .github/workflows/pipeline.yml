@@ -76,8 +76,7 @@ jobs:
                 
             - name: Build project
               run: |
-                docker build --file Dockerfile --platform linux/amd64 --tag markokaseke:latest .
-              shell: cmd  # Running in CMD shell on Windows
+                mvn clean package
               
     build-image:
         #runs-on: self-hosted
@@ -115,19 +114,28 @@ jobs:
               with:
                 username: ${{secrets.DOCKERHUB_USERNAME}}
                 password: ${{secrets.DOCKERHUB_TOKEN}}    
+            
+            - name: Build Docker Image
+              run: |
+                docker build --file Dockerfile --platform linux/amd64 --tag myimage:latest .
+                shell: pwsh  # Using PowerShell
 
-            - name: Build and push to DockerHub
-              uses: docker/build-push-action@v5
-              with:
-                context: .
-                file: Dockerfile #file to execute
-                push: true
-                platforms: linux/amd64
-                #tags: ${{secrets.DOCKERHUB_USERNAME}}/bsn-api:${{steps.extract_version.outputs.VERSION}},${{secrets.DOCKERHUB_USERNAME}}/bsn-api:latest
-                tags: ${{secrets.DOCKERHUB_USERNAME}}/pipelinedemo:latest
-                build-args: |
-                    PROFILE=dev
-                    APP_VERSION=${{steps.extract_version.outputs.VERSION}}
+            - name: Push Docker Image to DockerHub
+              run: |
+                docker push myimage:latest
+          
+            #- name: Build and push to DockerHub
+            #  uses: docker/build-push-action@v5
+            #  with:
+            #    context: .
+            #    file: Dockerfile #file to execute
+            #    push: true
+            #    platforms: linux/amd64
+            #    #tags: ${{secrets.DOCKERHUB_USERNAME}}/bsn-api:${{steps.extract_version.outputs.VERSION}},${{secrets.DOCKERHUB_USERNAME}}/bsn-api:latest
+            #    tags: ${{secrets.DOCKERHUB_USERNAME}}/pipelinedemo:latest
+            #    build-args: |
+            #        PROFILE=dev
+            #        APP_VERSION=${{steps.extract_version.outputs.VERSION}}
     
     #this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
     deploy:
