@@ -104,12 +104,21 @@ jobs:
               
               #For Windows
               run: |                
-                $version = & mvn help:evaluate -Dexpression=project.version -q -DforceStdout
-                $version = $version.Trim()  # Trim any unwanted newlines or spaces
-                if ($?) { 
-                "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append 
-                } else { 
-                Write-Host "Maven command failed."
+                Write-Host "Running Maven command..."
+  
+                # Capture the output and errors from Maven
+                $version = & mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2>&1
+  
+                # Check if Maven executed successfully
+                if ($?) {
+                # Trim any unwanted newlines or spaces
+                $version = $version.Trim()
+                Write-Host "Maven output (project version): $version"
+    
+                # Write the version to the GitHub output file
+                "VERSION=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+                } else {
+                Write-Host "Maven command failed. Output: $version"
                 exit 1
                 }
                 
