@@ -167,22 +167,30 @@ jobs:
               env:
                 MY_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
               run: |
-                # 1. Save the SSH key to a temp file
+                # 1. Save the SSH key
                 $keyPath = "$env:TEMP\deploy_key"
-                $env:MY_KEY | Out-File -Encoding ascii $keyPath
-                icacls $keyPath /inheritance:r /grant:r "$($env:USERNAME):(R)"  # restrict permissions
+                $env:MY_KEY | Set-Content -Encoding Ascii $keyPath
+                icacls $keyPath /inheritance:r /grant:r "$($env:USERNAME):(R)"
 
-                # 2. Define SSH options including legacy KEX
-                $ssh_opts = "-i $keyPath -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o StrictHostKeyChecking=no"
+                # 2. Define SSH options as an ARRAY (This is the critical fix)
+                $ssh_args = @(
+                    "-i", $keyPath,
+                    "-o", "KexAlgorithms=+diffie-hellman-group14-sha1",
+                    "-o", "HostKeyAlgorithms=+ssh-rsa",
+                    "-o", "StrictHostKeyChecking=no"
+                )
+
+                $vps = "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}"
 
                 # 3. Create remote folder
-                ssh $ssh_opts ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
+                # Use & to call the command and @ssh_args to splat the arguments
+                & ssh @ssh_args $vps "mkdir -p ci-cd"
 
                 # 4. Copy docker-compose.yml
-                scp $ssh_opts docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
+                & scp @ssh_args docker-compose.yml "${vps}:ci-cd/docker-compose.yml"
 
                 # 5. Pull and run Docker
-                ssh $ssh_opts ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"
+                & ssh @ssh_args $vps "cd ci-cd && docker compose pull && docker compose up -d"
 
                 # 6. Clean up
                 Remove-Item $keyPath
