@@ -207,5 +207,5 @@ jobs:
 
                 # Optional: remove deploy_temp folder if empty
                 if (Test-Path $deployDir -and (Get-ChildItem $deployDir | Measure-Object).Count -eq 0) {
-                Remove-Item $deployDir -Force
-}
+                    Remove-Item $deployDir -Force
+                }
