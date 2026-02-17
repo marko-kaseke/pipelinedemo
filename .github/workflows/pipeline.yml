@@ -175,6 +175,7 @@ jobs:
                 # 2. Define SSH options as an ARRAY (This is the critical fix)
                 $ssh_args = @(
                     "-i", $keyPath,
+                    "-c", "aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc",
                     "-o", "KexAlgorithms=+diffie-hellman-group14-sha1",
                     "-o", "HostKeyAlgorithms=+ssh-rsa",
                     "-o", "StrictHostKeyChecking=no"
