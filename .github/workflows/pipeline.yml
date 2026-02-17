@@ -167,19 +167,22 @@ jobs:
               env:
                 MY_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
               run: |
-                :: 1. Write SSH key EXACTLY as stored (no formatting changes)
-                powershell -Command "[System.IO.File]::WriteAllText('deploy_key.pem', $env:MY_KEY)"
+                # 1. Start the SSH Agent service (if not running)
+                Set-Service ssh-agent -StartupType Manual -ErrorAction SilentlyContinue
+                Start-Service ssh-agent -ErrorAction SilentlyContinue
 
-                :: 2. Fix Permissions (CRITICAL on Windows)
-                icacls deploy_key.pem /inheritance:r
-                icacls deploy_key.pem /grant:r "%USERNAME%":R
+                # 2. Add the key directly from the environment variable
+                $env:MY_KEY | ssh-add -
 
-                :: 3. Run SSH Commands
-                ssh -i deploy_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "mkdir -p ci-cd"
+                # 3. Define the common SSH options to keep it clean
+                $opts = "-o StrictHostKeyChecking=no -o BatchMode=yes -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa"
 
-                scp -i deploy_key.pem -o StrictHostKeyChecking=no -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
+                # 4. Run commands (Notice we don't need -i anymore because the key is in the agent)
+                ssh {0} ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd" -f $opts
+                
+                scp {0} docker-compose.yml "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml" -f $opts
 
-                ssh -i deploy_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"
+                ssh {0} ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d" -f $opts
 
-                :: 4. Cleanup
-                del deploy_key.pem
+                # 5. Clear the key from memory
+                ssh-add -D
