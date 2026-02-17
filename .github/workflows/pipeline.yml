@@ -165,13 +165,17 @@ jobs:
             - name: Setup Deployment Folder and Deploy
               shell: cmd
               run: |
-                :: Adding -m hmac-sha1 to solve the MAC negotiation
-                
-                :: 1. Create folder
-                ssh -c aes128-cbc -m hmac-sha1 -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
+                :: 1. Create the key file from the secret
+                echo ${{ secrets.SSH_PRIVATE_KEY }} > deploy_key.pem
 
-                :: 2. Copy the file
-                scp -c aes128-cbc -m hmac-sha1 -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
+                :: 2. Create folder on VPS
+                ssh -i deploy_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -c aes128-cbc -m hmac-sha1 -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
 
-                :: 3. Pull and Up
-                ssh -c aes128-cbc -m hmac-sha1 -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"
+                :: 3. Copy the docker-compose file
+                scp -i deploy_key.pem -o StrictHostKeyChecking=no -c aes128-cbc -m hmac-sha1 -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
+
+                :: 4. Pull and Up
+                ssh -i deploy_key.pem -o StrictHostKeyChecking=no -c aes128-cbc -m hmac-sha1 -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"
+
+                :: 5. Delete the key file for security
+                del deploy_key.pem
