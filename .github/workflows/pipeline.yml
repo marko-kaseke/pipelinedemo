@@ -178,20 +178,21 @@ jobs:
                     "-c", "aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc",
                     "-o", "KexAlgorithms=+diffie-hellman-group14-sha1",
                     "-o", "HostKeyAlgorithms=+ssh-rsa",
+                    "-o", "MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96",
                     "-o", "StrictHostKeyChecking=no"
                 )
 
                 $vps = "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}"
 
                 # 3. Create remote folder
-                # Use & to call the command and @ssh_args to splat the arguments
                 & ssh @ssh_args $vps "mkdir -p ci-cd"
 
                 # 4. Copy docker-compose.yml
-                & scp @ssh_args docker-compose.yml "${vps}:ci-cd/docker-compose.yml"
+                $remoteDest = $vps + ":ci-cd/docker-compose.yml"
+                & scp @ssh_args docker-compose.yml $remoteDest
 
                 # 5. Pull and run Docker
                 & ssh @ssh_args $vps "cd ci-cd && docker compose pull && docker compose up -d"
 
                 # 6. Clean up
-                Remove-Item $keyPath
+                if (Test-Path $keyPath) { Remove-Item $keyPath -Force }
