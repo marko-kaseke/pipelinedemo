@@ -1,4 +1,4 @@
-# this one for backend
+# this one for backend.
 # for frontend just make these jobs: Build docker image [checkout code, extract project version, login to dockerhub, build & push to dockerhub] and Deploy frontend [create deployment folder, copy docker compose file, set env variables and deploy]
 name: api_pipeline
 
