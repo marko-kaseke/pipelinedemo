@@ -163,7 +163,7 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Setup Deployment Folder and Deploy
-              shell: cmd
+              shell: pwsh
               env:
                 MY_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
               run: |
@@ -174,15 +174,13 @@ jobs:
                 # 2. Add the key directly from the environment variable
                 $env:MY_KEY | ssh-add -
 
-                # 3. Define the common SSH options to keep it clean
+                # 3. Define the common SSH options
                 $opts = "-o StrictHostKeyChecking=no -o BatchMode=yes -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa"
 
-                # 4. Run commands (Notice we don't need -i anymore because the key is in the agent)
-                ssh {0} ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd" -f $opts
-                
-                scp {0} docker-compose.yml "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml" -f $opts
-
-                ssh {0} ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d" -f $opts
+                # 4. Run commands
+                ssh $opts ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
+                scp -o StrictHostKeyChecking=no docker-compose.yml "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml"
+                ssh $opts ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"
 
                 # 5. Clear the key from memory
                 ssh-add -D
