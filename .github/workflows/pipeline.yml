@@ -170,9 +170,12 @@ jobs:
                 # Path to Git SSH
                 $gitSSH = "C:\Program Files\Git\usr\bin\ssh.exe"
                 $gitSCP = "C:\Program Files\Git\usr\bin\scp.exe"
-
-                # 1. Save the SSH key
-                $keyPath = "$env:TEMP\deploy_key"
+                
+                # 1. Save the SSH key in a folder the runner can write
+                $deployDir = Join-Path $env:GITHUB_WORKSPACE "deploy_temp"
+                if (-not (Test-Path $deployDir)) { New-Item -ItemType Directory -Force -Path $deployDir }
+                
+                $keyPath = Join-Path $deployDir "deploy_key"
                 $env:MY_KEY | Set-Content -Encoding Ascii $keyPath
                 icacls $keyPath /inheritance:r /grant:r "$($env:USERNAME):(R)"
 
@@ -201,3 +204,8 @@ jobs:
 
                 # 6. Clean up
                 if (Test-Path $keyPath) { Remove-Item $keyPath -Force }
+
+                # Optional: remove deploy_temp folder if empty
+                if (Test-Path $deployDir -and (Get-ChildItem $deployDir | Measure-Object).Count -eq 0) {
+                Remove-Item $deployDir -Force
+}
