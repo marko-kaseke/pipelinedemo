@@ -167,32 +167,37 @@ jobs:
               env:
                 MY_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
               run: |
+                # Path to Git SSH
+                $gitSSH = "C:\Program Files\Git\usr\bin\ssh.exe"
+                $gitSCP = "C:\Program Files\Git\usr\bin\scp.exe"
+
                 # 1. Save the SSH key
                 $keyPath = "$env:TEMP\deploy_key"
                 $env:MY_KEY | Set-Content -Encoding Ascii $keyPath
                 icacls $keyPath /inheritance:r /grant:r "$($env:USERNAME):(R)"
 
-                # 2. Define SSH options as an ARRAY (This is the critical fix)
+                # 2. Define SSH options
                 $ssh_args = @(
                     "-i", $keyPath,
                     "-c", "aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc",
                     "-o", "KexAlgorithms=+diffie-hellman-group14-sha1",
                     "-o", "HostKeyAlgorithms=+ssh-rsa",
                     "-o", "MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96",
-                    "-o", "StrictHostKeyChecking=no"
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "ConnectTimeout=10"
                 )
 
                 $vps = "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}"
 
                 # 3. Create remote folder
-                & ssh @ssh_args $vps "mkdir -p ci-cd"
+                & $gitSSH @ssh_args $vps "mkdir -p ci-cd"
 
                 # 4. Copy docker-compose.yml
                 $remoteDest = $vps + ":ci-cd/docker-compose.yml"
-                & scp @ssh_args docker-compose.yml $remoteDest
+                & $gitSCP @ssh_args docker-compose.yml $remoteDest
 
                 # 5. Pull and run Docker
-                & ssh @ssh_args $vps "cd ci-cd && docker compose pull && docker compose up -d"
+                & $gitSSH @ssh_args $vps "cd ci-cd && docker compose pull && docker compose up -d"
 
                 # 6. Clean up
                 if (Test-Path $keyPath) { Remove-Item $keyPath -Force }
