@@ -128,25 +128,45 @@ jobs:
                     PROFILE=dev
                     APP_VERSION=${{steps.extract_version.outputs.VERSION}}
     
-    #this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
+    ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
+    #deploy:
+    #    #runs-on: self-hosted
+    #    #runs-on: ubuntu-latest #github vm (temporary and for testing the pipeline)
+    #    runs-on: [self-hosted, Windows]
+    #    name: Deploy backend
+    #    needs: [build-image]
+    #    steps:
+    #        #- name: Create deployment folder
+    #        #  run: ssh ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "mkdir -p ci-cd"
+    #            
+    #        #- name: Copy docker-compose file
+    #        #  run: scp docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
+    #                
+    #        - name: Set environment variables and deploy
+    #          #<<EOF....EOF is for multiple line commands
+    #          run: |
+    #            ssh ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} <<EOF
+    #            cd ci-cd
+    #            docker-compose -f docker-compose.yml pull -q
+    #            docker-compose -f docker-compose.yml up -d
+    #            EOF
+                
     deploy:
-        #runs-on: self-hosted
-        #runs-on: ubuntu-latest #github vm (temporary and for testing the pipeline)
         runs-on: [self-hosted, Windows]
         name: Deploy backend
         needs: [build-image]
         steps:
-            - name: Create deployment folder
-              run: ssh ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "mkdir -p ci-cd"
-                
-            - name: Copy docker-compose file
-              run: scp docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
-                    
-            - name: Set environment variables and deploy
-              #<<EOF....EOF is for multiple line commands
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Setup Deployment Folder and Deploy
+              shell: cmd
               run: |
-                ssh ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} <<EOF
-                cd ci-cd
-                docker-compose -f docker-compose.yml pull -q
-                docker-compose -f docker-compose.yml up -d
-                EOF
+                :: 1. Create folder if it doesn't exist (Windows syntax)
+                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
+
+                :: 2. Copy the docker-compose file
+                scp -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
+
+                :: 3. Pull and Up (Single line command string, no EOF)
+                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"            
