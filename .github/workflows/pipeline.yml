@@ -165,21 +165,22 @@ jobs:
             - name: Setup Deployment Folder and Deploy
               shell: cmd
               run: |
-                :: 1. Create the key file from secret
-                echo ${{ secrets.SSH_PRIVATE_KEY }} > deploy_key.pem
+                # 1. Create the key file with UTF8 (No BOM) encoding
+                $key = @"
+                ${{ secrets.SSH_PRIVATE_KEY }}
+                "@
+                $key | Out-File -FilePath deploy_key.pem -Encoding ascii
 
-                :: 2. FIX PERMISSIONS (Otherwise SSH will ignore the key)
+                # 2. Fix Permissions
                 icacls deploy_key.pem /inheritance:r
-                icacls deploy_key.pem /grant:r "%USERNAME%":"(R)"
+                icacls deploy_key.pem /grant:r "$($env:USERNAME):(R)"
 
-                :: 3. Create folder (Using -o MACs for scp compatibility)
+                # 3. SSH Commands (Note the use of -o MACs for scp compatibility)
                 ssh -i deploy_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
 
-                :: 4. Copy file (Note: -m changed to -o MACs=hmac-sha1)
                 scp -i deploy_key.pem -o StrictHostKeyChecking=no -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
 
-                :: 5. Pull and Up
                 ssh -i deploy_key.pem -o StrictHostKeyChecking=no -o BatchMode=yes -o MACs=hmac-sha1 -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"
 
-                :: 6. Clean up
-                del deploy_key.pem
+                # 4. Cleanup
+                Remove-Item deploy_key.pem
