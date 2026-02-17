@@ -174,20 +174,20 @@ jobs:
               run: |
                 $vps = "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}"
 
-              # Optional: add legacy ciphers if your VPS requires them
-              $sshOpts = @(
-                "-o", "StrictHostKeyChecking=no",
-                "-o", "Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc",
-                "-o", "KexAlgorithms=+diffie-hellman-group14-sha1",
-                "-o", "HostKeyAlgorithms=+ssh-rsa"
-              )
+                # Optional: add legacy ciphers if your VPS requires them
+                $sshOpts = @(
+                    "-o", "StrictHostKeyChecking=no",
+                    "-o", "Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc",
+                    "-o", "KexAlgorithms=+diffie-hellman-group14-sha1",
+                    "-o", "HostKeyAlgorithms=+ssh-rsa"
+                )
     
-              # 1. Create folder
-              ssh @sshOpts $vps "mkdir -p ci-cd"
+                # 1. Create folder
+                ssh @sshOpts $vps "mkdir -p ci-cd"
 
-              # 2. Copy docker-compose.yml
-              $remoteDest = "$vps:ci-cd/docker-compose.yml"
-              scp @sshOpts docker-compose.yml $remoteDest
+                # 2. Copy docker-compose.yml
+                $remoteDest = "$vps:ci-cd/docker-compose.yml"
+                scp @sshOpts docker-compose.yml $remoteDest
 
-              # 3. Pull and run Docker
-              ssh @sshOpts $vps "cd ci-cd && docker compose pull && docker compose up -d"    
+                # 3. Pull and run Docker
+                ssh @sshOpts $vps "cd ci-cd && docker compose pull && docker compose up -d"    
