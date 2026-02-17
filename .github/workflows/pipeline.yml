@@ -129,6 +129,7 @@ jobs:
                     APP_VERSION=${{steps.extract_version.outputs.VERSION}}
     
     ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
+    ##For Linux
     #deploy:
     #    #runs-on: self-hosted
     #    #runs-on: ubuntu-latest #github vm (temporary and for testing the pipeline)
@@ -150,7 +151,9 @@ jobs:
     #            docker-compose -f docker-compose.yml pull -q
     #            docker-compose -f docker-compose.yml up -d
     #            EOF
-                
+    
+    ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
+    ##For Windows
     deploy:
         runs-on: [self-hosted, Windows]
         name: Deploy backend
@@ -162,11 +165,11 @@ jobs:
             - name: Setup Deployment Folder and Deploy
               shell: cmd
               run: |
-                :: 1. Create folder if it doesn't exist (Windows syntax)
-                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
+                :: 1. Create folder (Added -c aes128-cbc)
+                ssh -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "if not exist ci-cd mkdir ci-cd"
 
-                :: 2. Copy the docker-compose file
-                scp -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
+                :: 2. Copy the file (Added -c aes128-cbc)
+                scp -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
 
-                :: 3. Pull and Up (Single line command string, no EOF)
-                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"            
+                :: 3. Pull and Up (Added -c aes128-cbc)
+                ssh -c aes128-cbc -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "cd ci-cd && docker compose pull && docker compose up -d"          
