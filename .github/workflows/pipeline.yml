@@ -179,7 +179,8 @@ jobs:
                     "-o", "StrictHostKeyChecking=no",
                     "-o", "Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc",
                     "-o", "KexAlgorithms=+diffie-hellman-group14-sha1",
-                    "-o", "HostKeyAlgorithms=+ssh-rsa"
+                    "-o", "HostKeyAlgorithms=+ssh-rsa",
+                    "-o", "MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96"
                 )
     
                 # 1. Create folder
