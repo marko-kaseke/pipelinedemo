@@ -74,9 +74,14 @@ jobs:
                 java-version: 21
                 distribution: 'corretto'
                 
-            - name: Build project
-              run: |
-                mvn clean package 
+            #- name: Build project
+            #  run: |
+            #    mvn clean package 
+            
+            - name: Build Docker Image
+               run: |
+                 docker build --file Dockerfile --tag myimage:latest .
+
                 
     build-image:
         #runs-on: self-hosted
@@ -113,12 +118,7 @@ jobs:
               uses: docker/login-action@v3
               with:
                 username: ${{secrets.DOCKERHUB_USERNAME}}
-                password: ${{secrets.DOCKERHUB_TOKEN}}
-                
-            - name: Run Docker as Administrator (if needed)
-              run: |
-                Start-Process "docker" -ArgumentList "buildx build --build-arg PROFILE=dev --build-arg APP_VERSION=1.0.0 --file Dockerfile --platform linux/amd64 --tag ${{secrets.DOCKERHUB_USERNAME}}/pipelinedemo:latest ." -Verb RunAs
-    
+                password: ${{secrets.DOCKERHUB_TOKEN}}    
 
             - name: Build and push to DockerHub
               uses: docker/build-push-action@v5
