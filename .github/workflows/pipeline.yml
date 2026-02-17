@@ -115,14 +115,18 @@ jobs:
                 username: ${{secrets.DOCKERHUB_USERNAME}}
                 password: ${{secrets.DOCKERHUB_TOKEN}}    
             
-            - name: Build Docker Image
-              run: |
-                docker build --file Dockerfile --platform linux/amd64 --tag myimage:latest .
-                shell: pwsh  # Using PowerShell
-
-            - name: Push Docker Image to DockerHub
-              run: |
-                docker push myimage:latest
+            - name: Build and Push Docker Image to DockerHub
+              uses: docker/build-push-action@v5
+              with:
+                context: .
+                file: Dockerfile
+                push: true
+                platforms: linux/amd64
+                #tags: ${{secrets.DOCKERHUB_USERNAME}}/pipelinedemo:latest,${{secrets.DOCKERHUB_USERNAME}}/pipelinedemo:${{steps.extract_version.outputs.VERSION}}
+                tags: ${{secrets.DOCKERHUB_USERNAME}}/pipelinedemo:latest
+                build-args: |
+                    PROFILE=dev
+                    APP_VERSION=${{steps.extract_version.outputs.VERSION}}
           
             #- name: Build and push to DockerHub
             #  uses: docker/build-push-action@v5
