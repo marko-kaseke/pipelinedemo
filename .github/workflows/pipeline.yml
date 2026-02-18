@@ -175,10 +175,10 @@ jobs:
                 $vps = "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}"
 
                 # 1. Create folder
-                ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $vps "mkdir -p ci-cd"
+                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $vps "mkdir -p ci-cd"
 
                 # 2. Copy docker-compose.yml
-                scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null docker-compose.yml $vps:ci-cd/docker-compose.yml
+                scp -v -o KexAlgorithms=+diffie-hellman-group14-sha1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null docker-compose.yml $vps:ci-cd/docker-compose.yml
 
                 # 3. Pull and run Docker
-                ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $vps "cd ci-cd && docker compose pull --quiet && docker compose up -d --remove-orphans"    
+                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $vps "cd ci-cd && docker compose pull --quiet && docker compose up -d --remove-orphans"    
