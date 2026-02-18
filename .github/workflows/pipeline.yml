@@ -175,10 +175,28 @@ jobs:
                 $vps = "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}"
 
                 # 1. Create folder
-                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $vps "mkdir -p ci-cd"
+                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 `
+                    -o HostKeyAlgorithms=+ssh-rsa `
+                    -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc `
+                    -o MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96 `
+                    -o StrictHostKeyChecking=no `
+                    -o UserKnownHostsFile=/dev/null `
+                    $vps "mkdir -p ci-cd"
 
                 # 2. Copy docker-compose.yml
-                scp -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null docker-compose.yml $vps:ci-cd/docker-compose.yml
+                scp -o KexAlgorithms=+diffie-hellman-group14-sha1 `
+                    -o HostKeyAlgorithms=+ssh-rsa `
+                    -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc `
+                    -o MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96 `
+                    -o StrictHostKeyChecking=no `
+                    -o UserKnownHostsFile=/dev/null `
+                    docker-compose.yml $vps:ci-cd/docker-compose.yml
 
                 # 3. Pull and run Docker
-                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $vps "cd ci-cd && docker compose pull --quiet && docker compose up -d --remove-orphans"    
+                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 `
+                    -o HostKeyAlgorithms=+ssh-rsa `
+                    -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc `
+                    -o MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96 `
+                    -o StrictHostKeyChecking=no `
+                    -o UserKnownHostsFile=/dev/null `
+                    $vps "cd ci-cd && docker compose pull --quiet && docker compose up -d --remove-orphans"   
