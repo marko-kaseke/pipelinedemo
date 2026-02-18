@@ -174,29 +174,24 @@ jobs:
               run: |
                 $vps = "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}"
 
-                # 1. Create folder
-                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 `
-                    -o HostKeyAlgorithms=+ssh-rsa `
-                    -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc `
-                    -o MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96 `
-                    -o StrictHostKeyChecking=no `
-                    -o UserKnownHostsFile=/dev/null `
-                    $vps "mkdir -p ci-cd"
+                # Legacy SSH options
+                $sshOpts = "-o KexAlgorithms=+diffie-hellman-group14-sha1 " +
+                        "-o HostKeyAlgorithms=+ssh-rsa " +
+                        "-o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc " +
+                        "-o MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96 " +
+                        "-o StrictHostKeyChecking=no " +
+                        "-o UserKnownHostsFile=/dev/null"
 
-                # 2. Copy docker-compose.yml
-                scp -o KexAlgorithms=+diffie-hellman-group14-sha1 `
-                    -o HostKeyAlgorithms=+ssh-rsa `
-                    -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc `
-                    -o MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96 `
-                    -o StrictHostKeyChecking=no `
-                    -o UserKnownHostsFile=/dev/null `
-                    docker-compose.yml $vps:ci-cd/docker-compose.yml
+                Write-Host "1. Creating deployment folder on VPS..."
+                ssh $sshOpts $vps "mkdir -p ci-cd"
 
-                # 3. Pull and run Docker
-                ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 `
-                    -o HostKeyAlgorithms=+ssh-rsa `
-                    -o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc `
-                    -o MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96 `
-                    -o StrictHostKeyChecking=no `
-                    -o UserKnownHostsFile=/dev/null `
-                    $vps "cd ci-cd && docker compose pull --quiet && docker compose up -d --remove-orphans"   
+                Write-Host "2. Copying docker-compose.yml..."
+                scp $sshOpts docker-compose.yml $vps:ci-cd/docker-compose.yml
+
+                Write-Host "3. Pulling Docker images..."
+                ssh $sshOpts $vps "cd ci-cd && docker compose pull --quiet"
+
+                Write-Host "4. Deploying containers in detached mode..."
+                ssh $sshOpts $vps "cd ci-cd && docker compose up -d --remove-orphans"
+
+                Write-Host "✅ Deployment finished successfully!"  
