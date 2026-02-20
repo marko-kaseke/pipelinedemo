@@ -136,6 +136,9 @@ jobs:
         needs: [build-image]
 
         steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+      
             - name: Create deployment folder
               run: mkdir -p ci-cd
 
