@@ -137,13 +137,13 @@ jobs:
 
         steps:
             - name: Create deployment folder
-            run: mkdir -p ci-cd
+              run: mkdir -p ci-cd
 
             - name: Copy docker-compose file
-            run: cp docker-compose.yml ci-cd/
+              run: cp docker-compose.yml ci-cd/
 
             - name: Verify docker-compose file exists
-            run: |
+              run: |
                 if [ -f ci-cd/docker-compose.yml ]; then
                     echo "docker-compose.yml exists ✅"
                 else
@@ -152,7 +152,7 @@ jobs:
                 fi
 
             - name: Deploy application (test)
-            run: |
+              run: |
                 cd ci-cd
                 docker compose pull || echo "No images yet, skipping pull"
                 docker compose up -d --remove-orphans
