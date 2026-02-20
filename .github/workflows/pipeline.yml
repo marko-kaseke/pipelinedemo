@@ -19,7 +19,7 @@ jobs:
         runs-on: [self-hosted, Windows]
         name: Compile project
         steps:
-            - name: Checkout code
+            - name: Checkout code #useful if you ever need local files.
               uses: actions/checkout@v4
               with: #environment variables
                 fetch-depth: 0 
@@ -130,61 +130,65 @@ jobs:
     
     ##this job only for "runs-on: ubuntu-latest" not "runs-on: self-hosted" (for testing)..
     ##For Linux
+    #deploy:
+    #    runs-on: ubuntu-latest
+    #    name: Deploy backend (Test)
+    #    needs: [build-image]
+
+    #    steps:
+    #        - name: Checkout code
+    #          uses: actions/checkout@v4
+      
+    #        - name: Create deployment folder
+    #          run: mkdir -p ci-cd
+
+    #        - name: Copy docker-compose file
+    #          run: cp docker-compose.yml ci-cd/
+
+    #        - name: Verify docker-compose file exists
+    #          run: |
+    #            if [ -f ci-cd/docker-compose.yml ]; then
+    #                echo "docker-compose.yml exists ✅"
+    #            else
+    #                echo "docker-compose.yml NOT found ❌"
+    #                exit 1
+    #            fi
+
+    #        - name: Deploy application (test)
+    #          run: |
+    #            cd ci-cd
+    #            docker compose pull || echo "No images yet, skipping pull"
+    #            docker compose up -d --remove-orphans
+    #            docker image prune -f        
+    
+    ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
+    ##For Linux
     deploy:
-        runs-on: ubuntu-latest
-        name: Deploy backend (Test)
+        runs-on: [self-hosted, Linux]
+        name: Deploy backend
         needs: [build-image]
 
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
-      
+    
             - name: Create deployment folder
-              run: mkdir -p ci-cd
+              run: |
+                ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} \
+                "mkdir -p ~/ci-cd"
 
             - name: Copy docker-compose file
-              run: cp docker-compose.yml ci-cd/
-
-            - name: Verify docker-compose file exists
               run: |
-                if [ -f ci-cd/docker-compose.yml ]; then
-                    echo "docker-compose.yml exists ✅"
-                else
-                    echo "docker-compose.yml NOT found ❌"
-                    exit 1
-                fi
+                scp -o StrictHostKeyChecking=no docker-compose.yml \
+                ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:~/ci-cd/docker-compose.yml
 
-            - name: Deploy application (test)
+            - name: Deploy application
+              #'EOF' is for multiple line commands
               run: |
-                cd ci-cd
-                docker compose pull || echo "No images yet, skipping pull"
+                ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} << 'EOF'
+                cd ~/ci-cd
+                docker compose pull
                 docker compose up -d --remove-orphans
-                docker image prune -f        
-    
-    ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
-    ##For Linux
-    #deploy:
-    #    runs-on: [self-hosted, Linux]
-    #    name: Deploy backend
-    #    needs: [build-image]
-
-    #    steps:
-    #        - name: Create deployment folder
-    #          run: |
-    #            ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} \
-    #            "mkdir -p ~/ci-cd"
-
-    #        - name: Copy docker-compose file
-    #          run: |
-    #            scp -o StrictHostKeyChecking=no docker-compose.yml \
-    #            ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:~/ci-cd/docker-compose.yml
-
-    #        - name: Deploy application
-    #        run: |
-    #            ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} << 'EOF'
-    #                cd ~/ci-cd
-    #                docker compose pull
-    #                docker compose up -d --remove-orphans
-    #                docker image prune -f
-    #            EOF
+                docker image prune -f
+                EOF
     
