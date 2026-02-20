@@ -161,7 +161,7 @@ jobs:
     #            docker compose up -d --remove-orphans
     #            docker image prune -f        
     
-    ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
+    ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest" (for VPS)
     ##For Linux
     deploy:
         runs-on: [self-hosted, Linux]
@@ -171,24 +171,28 @@ jobs:
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
-    
+
             - name: Create deployment folder
               run: |
-                ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} \
-                "mkdir -p ~/ci-cd"
+                mkdir -p ~/ci-cd
 
             - name: Copy docker-compose file
               run: |
-                scp -o StrictHostKeyChecking=no docker-compose.yml \
-                ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:~/ci-cd/docker-compose.yml
+                cp docker-compose.yml ~/ci-cd/
+
+            - name: Verify docker-compose file exists
+              run: |
+                if [ -f ~/ci-cd/docker-compose.yml ]; then
+                    echo "docker-compose.yml exists ✅"
+                else
+                    echo "docker-compose.yml NOT found ❌"
+                    exit 1
+                fi
 
             - name: Deploy application
-              #'EOF' is for multiple line commands
               run: |
-                ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} << 'EOF'
                 cd ~/ci-cd
-                docker compose pull
+                docker compose pull || echo "No images yet, skipping pull"
                 docker compose up -d --remove-orphans
                 docker image prune -f
-                EOF
     
