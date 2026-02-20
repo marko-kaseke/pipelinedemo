@@ -2,13 +2,7 @@ services:
   app:
     image: markokaseke/pipelinedemo:1.0.0
     container_name: pipelinedemo-container-1
-    restart: unless-stopped
-    environment:
-      #SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3307/sourceafs?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      #SPRING_DATASOURCE_USERNAME: root
-      #SPRING_DATASOURCE_PASSWORD: password
-      #SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      #FILE_UPLOAD_DIR: /sourceafs_files         
+    restart: unless-stopped        
       
     ports:
       - "8080:8080"
