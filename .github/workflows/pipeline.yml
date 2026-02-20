@@ -128,7 +128,7 @@ jobs:
                     PROFILE=dev
                     APP_VERSION=${{steps.extract_version.outputs.VERSION}}
     
-    ##this job only for "runs-on: ubuntu-latest" not "runs-on: self-hosted" (for testing)
+    ##this job only for "runs-on: ubuntu-latest" not "runs-on: self-hosted" (for testing)..
     ##For Linux
     deploy:
         runs-on: ubuntu-latest
