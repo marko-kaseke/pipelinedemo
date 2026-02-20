@@ -17,5 +17,5 @@ WORKDIR /app
 # Copy the built jar from build stage
 COPY --from=build /app/target/*.jar sourceafs.jar
 
-EXPOSE 8080
+EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "sourceafs.jar"]

@@ -128,43 +128,10 @@ jobs:
                     PROFILE=dev
                     APP_VERSION=${{steps.extract_version.outputs.VERSION}}
     
-    ##this job only for "runs-on: ubuntu-latest" not "runs-on: self-hosted" (for testing)..
-    ##For Linux
-    #deploy:
-    #    runs-on: ubuntu-latest
-    #    name: Deploy backend (Test)
-    #    needs: [build-image]
-
-    #    steps:
-    #        - name: Checkout code
-    #          uses: actions/checkout@v4
-      
-    #        - name: Create deployment folder
-    #          run: mkdir -p ci-cd
-
-    #        - name: Copy docker-compose file
-    #          run: cp docker-compose.yml ci-cd/
-
-    #        - name: Verify docker-compose file exists
-    #          run: |
-    #            if [ -f ci-cd/docker-compose.yml ]; then
-    #                echo "docker-compose.yml exists ✅"
-    #            else
-    #                echo "docker-compose.yml NOT found ❌"
-    #                exit 1
-    #            fi
-
-    #        - name: Deploy application (test)
-    #          run: |
-    #            cd ci-cd
-    #            docker compose pull || echo "No images yet, skipping pull"
-    #            docker compose up -d --remove-orphans
-    #            docker image prune -f        
-    
-    ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest" (for VPS)
     ##For Linux
     deploy:
-        runs-on: [self-hosted, Linux]
+        #runs-on: ubuntu-latest # for github runner
+        runs-on: [self-hosted, Linux] # for linux VPS runner
         name: Deploy backend
         needs: [build-image]
 
