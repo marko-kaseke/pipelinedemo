@@ -1,52 +1,20 @@
 services:
-  mysql-db:
-    image: mysql:8.0
-    container_name: mysql-sourceafs-db-container
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: sourceafs
-    ports:
-      - "3307:3307"
-    volumes:
-      - mysql_db_data:/var/lib/mysql
-      - ./db-init-scripts/mysql/init.sql:/docker-entrypoint-initdb.d/mysql-init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -uroot -ppassword"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 120s
-    networks:
-      - sourceafs-net
-
   app:
-    image: markokaseke/sourceafs:1.0.0
-    container_name: sourceafs-container
+    image: markokaseke/pipelinedemo:1.0.0
+    container_name: pipelinedemo-container-1
     restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3307/sourceafs?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: password
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      FILE_UPLOAD_DIR: /sourceafs_files         
+      #SPRING_DATASOURCE_URL: jdbc:mysql://mysql-db:3307/sourceafs?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      #SPRING_DATASOURCE_USERNAME: root
+      #SPRING_DATASOURCE_PASSWORD: password
+      #SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      #FILE_UPLOAD_DIR: /sourceafs_files         
       
     ports:
       - "8080:8080"
-    depends_on:
-      mysql-db:
-        condition: service_healthy
-    volumes:
-      - ./sourceafs_files:/sourceafs_files
-      - ./storage:/storage
     networks:
-      - sourceafs-net
-
-volumes:
-  mysql_db_data:
-  #You do not need to declare ./sourceafs_files or ./storage because they're bind mounts (host directories).
-  #Make sure sourceafs_files/ and storage/ exist on your host machine (in the same directory as docker-compose.yml), or Docker will create them as empty folders.
+      - pipelinedemo-net
 
 networks:
-  sourceafs-net:
+  pipelinedemo-net:
     driver: bridge

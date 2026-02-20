@@ -128,73 +128,60 @@ jobs:
                     PROFILE=dev
                     APP_VERSION=${{steps.extract_version.outputs.VERSION}}
     
-    ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
+    ##this job only for "runs-on: ubuntu-latest" not "runs-on: self-hosted" (for testing)
     ##For Linux
-    #deploy:
-    #    #runs-on: self-hosted
-    #    #runs-on: ubuntu-latest #github vm (temporary and for testing the pipeline)
-    #    runs-on: [self-hosted, Windows]
-    #    name: Deploy backend
-    #    needs: [build-image]
-    #    steps:
-    #        #- name: Create deployment folder
-    #        #  run: ssh ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} "mkdir -p ci-cd"
-    #            
-    #        #- name: Copy docker-compose file
-    #        #  run: scp docker-compose.yml ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}:ci-cd/docker-compose.yml
-    #                
-    #        - name: Set environment variables and deploy
-    #          #<<EOF....EOF is for multiple line commands
-    #          run: |
-    #            ssh ${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}} <<EOF
-    #            cd ci-cd
-    #            docker-compose -f docker-compose.yml pull -q
-    #            docker-compose -f docker-compose.yml up -d
-    #            EOF
+    deploy:
+        runs-on: ubuntu-latest
+        name: Deploy backend (Test)
+        needs: [build-image]
+
+        steps:
+            - name: Create deployment folder
+            run: mkdir -p ci-cd
+
+            - name: Copy docker-compose file
+            run: cp docker-compose.yml ci-cd/
+
+            - name: Verify docker-compose file exists
+            run: |
+                if [ -f ci-cd/docker-compose.yml ]; then
+                    echo "docker-compose.yml exists ✅"
+                else
+                    echo "docker-compose.yml NOT found ❌"
+                    exit 1
+                fi
+
+            - name: Deploy application (test)
+            run: |
+                cd ci-cd
+                docker compose pull || echo "No images yet, skipping pull"
+                docker compose up -d --remove-orphans
+                docker image prune -f        
     
     ##this job only for "runs-on: self-hosted" not "runs-on: ubuntu-latest"
-    ##For Windows.
+    ##For Linux
     deploy:
-        runs-on: [self-hosted, Windows]
+        runs-on: [self-hosted, Linux]
         name: Deploy backend
         needs: [build-image]
+
         steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-
-            - name: Install SSH Key
-              uses: shimataro/ssh-key-action@v2
-              with:
-                key: ${{ secrets.SSH_PRIVATE_KEY }}
-                known_hosts: unnecessary_if_using_ignore
-                if_key_exists: replace
-                
-            - name: Deploy via SSH
-              shell: powershell
+            - name: Create deployment folder
               run: |
-                $vps = "${{secrets.VPS_USERNAME}}@${{secrets.VPS_IP}}"
+                ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} \
+                "mkdir -p ~/ci-cd"
 
-                # Legacy SSH options
-                $sshOpts = @(
-                    "-T",  # disable pseudo-TTY
-                    "-o KexAlgorithms=+diffie-hellman-group14-sha1",
-                    "-o HostKeyAlgorithms=+ssh-rsa",
-                    "-o Ciphers=aes128-cbc,aes192-cbc,aes256-cbc,3des-cbc",
-                    "-o MACs=hmac-sha1,hmac-sha1-96,hmac-md5,hmac-md5-96",
-                    "-o StrictHostKeyChecking=no",
-                    "-o UserKnownHostsFile=/dev/null"
-                )
+            - name: Copy docker-compose file
+              run: |
+                scp -o StrictHostKeyChecking=no docker-compose.yml \
+                ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }}:~/ci-cd/docker-compose.yml
 
-                Write-Host "1. Creating deployment folder on VPS..."
-                & ssh @sshOpts $vps "mkdir -p ci-cd"
-
-                Write-Host "2. Copying docker-compose.yml..."
-                & scp @sshOpts docker-compose.yml $vps:ci-cd/docker-compose.yml
-
-                Write-Host "3. Pulling Docker images..."
-                & ssh @sshOpts $vps "cd ci-cd && docker compose pull --quiet"
-
-                Write-Host "4. Deploying containers in detached mode..."
-                & ssh @sshOpts $vps "cd ci-cd && docker compose up -d --remove-orphans"
-
-                Write-Host "✅ Deployment finished successfully!"  
+            - name: Deploy application
+            run: |
+                ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_IP }} << 'EOF'
+                    cd ~/ci-cd
+                    docker compose pull
+                    docker compose up -d --remove-orphans
+                    docker image prune -f
+                EOF
+    
